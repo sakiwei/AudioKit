@@ -1,5 +1,5 @@
 //
-//  AKTremoloDSP.hpp
+//  AKAutoPannerDSP.hpp
 //  AudioKit
 //
 //  Created by Aurelius Prochazka, revision history on Github.
@@ -10,26 +10,27 @@
 
 #import <AVFoundation/AVFoundation.h>
 
-typedef NS_ENUM(AUParameterAddress, AKTremoloParameter) {
-    AKTremoloParameterFrequency,
-    AKTremoloParameterDepth,
-    AKTremoloParameterRampDuration
+typedef NS_ENUM(AUParameterAddress, AKAutoPannerParameter) {
+    AKAutoPannerParameterFrequency,
+    AKAutoPannerParameterDepth,
+    AKAutoPannerParameterRampDuration
 };
 
 #import "AKLinearParameterRamp.hpp"  // have to put this here to get it included in umbrella header
 
 #ifndef __cplusplus
 
-AKDSPRef createTremoloDSP(int nChannels, double sampleRate);
+AKDSPRef createAutoPannerDSP(int nChannels, double sampleRate);
 
 #else
 
 #import "AKSoundpipeDSPBase.hpp"
 
-class AKTremoloDSP : public AKSoundpipeDSPBase {
+class AKAutoPannerDSP : public AKSoundpipeDSPBase {
 
     sp_osc *_trem;
     sp_ftbl *_tbl;
+    sp_panst *_panst;
     UInt32 _tbl_size = 4096;
 
 private:
@@ -37,7 +38,7 @@ private:
     AKLinearParameterRamp depthRamp;
    
 public:
-    AKTremoloDSP() {
+    AKAutoPannerDSP() {
         frequencyRamp.setTarget(10.0, true);
         frequencyRamp.setDurationInSamples(10000);
         depthRamp.setTarget(1.0, true);
@@ -47,13 +48,13 @@ public:
     /** Uses the ParameterAddress as a key */
     void setParameter(AUParameterAddress address, float value, bool immediate) override {
         switch (address) {
-            case AKTremoloParameterFrequency:
+            case AKAutoPannerParameterFrequency:
                 frequencyRamp.setTarget(value, immediate);
                 break;
-            case AKTremoloParameterDepth:
+            case AKAutoPannerParameterDepth:
                 depthRamp.setTarget(value, immediate);
                 break;
-            case AKTremoloParameterRampDuration:
+            case AKAutoPannerParameterRampDuration:
                 frequencyRamp.setRampDuration(value, _sampleRate);
                 depthRamp.setRampDuration(value, _sampleRate);
                 break;
@@ -63,11 +64,11 @@ public:
     /** Uses the ParameterAddress as a key */
     float getParameter(AUParameterAddress address) override {
         switch (address) {
-            case AKTremoloParameterFrequency:
+            case AKAutoPannerParameterFrequency:
                 return frequencyRamp.getTarget();
-            case AKTremoloParameterDepth:
+            case AKAutoPannerParameterDepth:
                 return depthRamp.getTarget();
-            case AKTremoloParameterRampDuration:
+            case AKAutoPannerParameterRampDuration:
                 return frequencyRamp.getRampDuration(_sampleRate);
                 return depthRamp.getRampDuration(_sampleRate);
         }
@@ -80,6 +81,9 @@ public:
         sp_osc_init(_sp, _trem, _tbl, 0);
         _trem->freq = 10.0;
         _trem->amp = 1.0;
+        sp_panst_create(&_panst);
+        sp_panst_init(_sp, _panst);
+        _panst->pan = 0;
     }
 
     void setupWaveform(uint32_t size) override {
@@ -93,6 +97,7 @@ public:
 
     void deinit() override {
         sp_osc_destroy(&_trem);
+        sp_panst_destroy(&_panst);
     }
 
     void process(uint32_t frameCount, uint32_t bufferOffset) override {
@@ -105,21 +110,30 @@ public:
                 frequencyRamp.advanceTo(_now + frameOffset);
                 depthRamp.advanceTo(_now + frameOffset);
             }
-            _trem->freq = frequencyRamp.getValue()  * 0.5; //Divide by two for stereo
+            _trem->freq = frequencyRamp.getValue();
             _trem->amp = depthRamp.getValue();
 
             float temp = 0;
+            float *tmpin[2];
+            float *tmpout[2];
             for (int channel = 0; channel < _nChannels; ++channel) {
                 float *in  = (float *)_inBufferListPtr->mBuffers[channel].mData  + frameOffset;
                 float *out = (float *)_outBufferListPtr->mBuffers[channel].mData + frameOffset;
 
-                if (_playing) {
-                    sp_osc_compute(_sp, _trem, NULL, &temp);
-                    *out = *in * (1.0 - temp);
-                } else {
+                if (channel < 2) {
+                    tmpin[channel] = in;
+                    tmpout[channel] = out;
+                }
+                if (!_playing) {
                     *out = *in;
                 }
             }
+            if (_playing) {
+                sp_osc_compute(_sp, _trem, NULL, &temp);
+                _panst->pan = 2.0 * temp - 1.0;
+                sp_panst_compute(_sp, _panst, tmpin[0], tmpin[1], tmpout[0], tmpout[1]);
+            }
+
         }
     }
 };

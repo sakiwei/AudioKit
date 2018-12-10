@@ -1,17 +1,17 @@
 //
-//  AKTremolo.mm
+//  AKAutoPanner.mm
 //  AudioKit
 //
 //  Created by Aurelius Prochazka, revision history on Github.
 //  Copyright © 2018 AudioKit. All rights reserved.
 //
 
-#import "AKTremoloDSP.hpp"
+#import "AKAutoPannerDSP.hpp"
 
 // "Constructor" function for interop with Swift
 
-extern "C" AKDSPRef createTremoloDSP(int nChannels, double sampleRate) {
-    AKTremoloDSP *dsp = new AKTremoloDSP();
+extern "C" AKDSPRef createAutoPannerDSP(int nChannels, double sampleRate) {
+    AKAutoPannerDSP *dsp = new AKAutoPannerDSP();
     dsp->init(nChannels, sampleRate);
     return dsp;
 }

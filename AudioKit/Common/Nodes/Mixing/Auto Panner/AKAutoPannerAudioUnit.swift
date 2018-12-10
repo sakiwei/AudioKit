@@ -1,5 +1,5 @@
 //
-//  AKToneFilterAudioUnit.swift
+//  AKAutoPannerAudioUnit.swift
 //  AudioKit
 //
 //  Created by Aurelius Prochazka, revision history on Github.
@@ -8,18 +8,21 @@
 
 import AVFoundation
 
-public class AKToneFilterAudioUnit: AKAudioUnitBase {
+public class AKAutoPannerAudioUnit: AKAudioUnitBase {
 
-    func setParameter(_ address: AKToneFilterParameter, value: Double) {
+    func setParameter(_ address: AKAutoPannerParameter, value: Double) {
         setParameterWithAddress(AUParameterAddress(address.rawValue), value: Float(value))
     }
 
-    func setParameterImmediately(_ address: AKToneFilterParameter, value: Double) {
+    func setParameterImmediately(_ address: AKAutoPannerParameter, value: Double) {
         setParameterImmediatelyWithAddress(AUParameterAddress(address.rawValue), value: Float(value))
     }
 
-    var halfPowerPoint: Double = AKToneFilter.defaultHalfPowerPoint {
-        didSet { setParameter(.halfPowerPoint, value: halfPowerPoint) }
+    var frequency: Double = 10.0 {
+        didSet { setParameter(.frequency, value: frequency) }
+    }
+    var depth: Double = 1.0 {
+        didSet { setParameter(.depth, value: depth) }
     }
 
     var rampDuration: Double = 0.0 {
@@ -28,7 +31,7 @@ public class AKToneFilterAudioUnit: AKAudioUnitBase {
 
     public override func initDSP(withSampleRate sampleRate: Double,
                                  channelCount count: AVAudioChannelCount) -> AKDSPRef {
-        return createToneFilterDSP(Int32(count), sampleRate)
+        return createAutoPannerDSP(Int32(count), sampleRate)
     }
 
     public override init(componentDescription: AudioComponentDescription,
@@ -37,21 +40,34 @@ public class AKToneFilterAudioUnit: AKAudioUnitBase {
 
         let flags: AudioUnitParameterOptions = [.flag_IsReadable, .flag_IsWritable, .flag_CanRamp]
 
-        let halfPowerPoint = AUParameterTree.createParameter(
-            withIdentifier: "halfPowerPoint",
-            name: "Half-Power Point (Hz)",
+        let frequency = AUParameterTree.createParameter(
+            withIdentifier: "frequency",
+            name: "Frequency (Hz)",
             address: AUParameterAddress(0),
-            min: Float(AKToneFilter.halfPowerPointRange.lowerBound),
-            max: Float(AKToneFilter.halfPowerPointRange.upperBound),
+            min: 0.0,
+            max: 100.0,
             unit: .hertz,
             unitName: nil,
             flags: flags,
             valueStrings: nil,
             dependentParameters: nil
         )
+        let depth = AUParameterTree.createParameter(
+            withIdentifier: "depth",
+            name: "Depth",
+            address: AUParameterAddress(1),
+            min: 0.0,
+            max: 1.0,
+            unit: .generic,
+            unitName: nil,
+            flags: flags,
+            valueStrings: nil,
+            dependentParameters: nil
+        )
 
-        setParameterTree(AUParameterTree.createTree(withChildren: [halfPowerPoint]))
-        halfPowerPoint.value = Float(AKToneFilter.defaultHalfPowerPoint)
+        setParameterTree(AUParameterTree.createTree(withChildren: [frequency, depth]))
+        frequency.value = 10.0
+        depth.value = 1.0
     }
 
     public override var canProcessInPlace: Bool { return true }
