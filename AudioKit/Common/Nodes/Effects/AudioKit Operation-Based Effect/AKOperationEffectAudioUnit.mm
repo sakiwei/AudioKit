@@ -60,11 +60,9 @@
 
 - (void)createParameters {
     standardSetup(OperationEffect)
-    _parameterTree = [AUParameterTree createTreeWithChildren:@[]];
+    _parameterTree = [AUParameterTree treeWithChildren:@[]];
     parameterTreeBlock(OperationEffect)
 }
 
 AUAudioUnitOverrides(OperationEffect)
 @end
-
-

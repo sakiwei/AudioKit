@@ -35,9 +35,9 @@
  the .m file. There may be a better way to do what is needed here.
  */
 
-- (void) setParameterTree: (AUParameterTree*) tree;
+- (void) setParameterTree: (AUParameterTree* _Nonnull) tree;
 
-- (float) getParameterWithAddress:(AUParameterAddress)address;
+- (AUValue) parameterWithAddress:(AUParameterAddress)address;
 - (void) setParameterWithAddress:(AUParameterAddress)address value:(AUValue)value;
 - (void) setParameterImmediatelyWithAddress:(AUParameterAddress)address value:(AUValue)value;
 
@@ -51,6 +51,11 @@
 // Common for oscillating effects
 - (void)setupWaveform:(int)size;
 - (void)setWaveformValue:(float)value atIndex:(UInt32)index;
+
+// Convolution and Phase-Locked Vocoder
+- (void)setupAudioFileTable:(float *)data size:(UInt32)size;
+- (void)setPartitionLength:(int)partitionLength;
+- (void)initConvolutionEngine;
 
 @property (readonly) BOOL isPlaying;
 @property (readonly) BOOL isSetUp;

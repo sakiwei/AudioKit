@@ -24,8 +24,6 @@
     _kernel.setPhaseDistortion(phaseDistortion);
 }
 
-standardBankFunctions()
-
 - (void)setupWaveform:(int)size {
     _kernel.setupWaveform((uint32_t)size);
 }
@@ -36,26 +34,25 @@ standardBankFunctions()
 - (void)createParameters {
 
     standardGeneratorSetup(PhaseDistortionOscillatorBank)
-    standardBankParameters()
 
     // Create a parameter object for the phaseDistortion.
-    AUParameter *phaseDistortionAUParameter = [AUParameter parameter:@"phaseDistortion"
-                                                                name:@"Phase Distortion"
-                                                             address:phaseDistortionAddress
-                                                                 min:0.0
-                                                                 max:1.0
-                                                                unit:kAudioUnitParameterUnit_Generic];
+    AUParameter *phaseDistortionAUParameter = [AUParameter parameterWithIdentifier:@"phaseDistortion"
+                                                                              name:@"Phase Distortion"
+                                                                           address:AKPhaseDistortionOscillatorBankDSPKernel::phaseDistortionAddress
+                                                                               min:0.0
+                                                                               max:1.0
+                                                                              unit:kAudioUnitParameterUnit_Generic];
 
     // Initialize the parameter values.
     phaseDistortionAUParameter.value = 0.0;
 
-    _kernel.setParameter(phaseDistortionAddress, phaseDistortionAUParameter.value);
+    _kernel.setParameter(AKPhaseDistortionOscillatorBankDSPKernel::phaseDistortionAddress, phaseDistortionAUParameter.value);
+
+    [self setKernelPtr:&_kernel];
 
     // Create the parameter tree.
-    _parameterTree = [AUParameterTree createTreeWithChildren:@[
-                                                               standardBankAUParameterList(),
-                                                               phaseDistortionAUParameter
-                                                               ]];
+    NSArray *children = [[self standardParameters] arrayByAddingObjectsFromArray:@[phaseDistortionAUParameter]];
+    _parameterTree = [AUParameterTree treeWithChildren:children];
     parameterTreeBlock(PhaseDistortionOscillatorBank)
 }
 
