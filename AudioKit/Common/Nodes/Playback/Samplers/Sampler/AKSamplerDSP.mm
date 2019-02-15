@@ -50,6 +50,8 @@ extern "C" void doAKSamplerLoadCompressedFile(AKDSPRef pDSP, AKSampleFileDescrip
     }
 
     ((AKSamplerDSP*)pDSP)->loadSampleData(sdd);
+
+    WavpackCloseFile(wpc);
     delete[] sdd.data;
 }
 
